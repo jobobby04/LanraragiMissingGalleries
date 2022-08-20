@@ -199,18 +199,24 @@ suspend fun main(args: Array<String>) {
             val searchLink =
                 "https://sukebei.nyaa.si/?f=0&c=0_0&q=${title.encodeURLParameter(spaceToPlus = true)}"
             logger.info("Getting Nyaa.si links for $title")
-            SearchResult(
+            val searchResult = SearchResult(
                 title,
                 url,
-                searchLink,
-                client.get(searchLink)
-                    .bodyAsText()
-                    .let(Jsoup::parse)
-                    .select("table tr.default td[colspan=\"2\"] a:not(.comments)")
-                    .map { "https://sukebei.nyaa.si" + it.attr("href") }
+                searchLink
             )
+            try {
+                searchResult.copy(
+                    torrents = client.get(searchLink)
+                        .bodyAsText()
+                        .let(Jsoup::parse)
+                        .select("table tr.default td[colspan=\"2\"] a:not(.comments)")
+                        .map { "https://sukebei.nyaa.si" + it.attr("href") }
+                )
+            } catch (e: Exception) {
+                searchResult.copy(failed = true)
+            }
         }
-        .onEach { (title, url, _, links) ->
+        .onEach { (title, url, _, links, failed) ->
             if (links.isNotEmpty()) {
                 logger.info(
                     "\nFound links for $title ($url):${
@@ -221,6 +227,8 @@ suspend fun main(args: Array<String>) {
                         )
                     }"
                 )
+            } else if (failed) {
+                logger.error("Search failed for $title ($url)")
             } else {
                 logger.info("No links found for $title ($url)")
             }
@@ -256,7 +264,21 @@ suspend fun main(args: Array<String>) {
                         appendLine()
                     }
                 }
-                results.filter { it.torrents.isEmpty() }.let { linkResults ->
+                results.filter { it.failed }.let { linkResults ->
+                    if (linkResults.isNotEmpty()) {
+                        appendLine("Search failed for:")
+                        appendLine()
+                        linkResults.forEach { (title, url, searchLink) ->
+                            append(title)
+                            append(" (")
+                            append(url)
+                            append("): ")
+                            appendLine(searchLink)
+                        }
+                        appendLine()
+                    }
+                }
+                results.filter { it.torrents.isEmpty() && !it.failed }.let { linkResults ->
                     if (linkResults.isNotEmpty()) {
                         appendLine("No results for:")
                         appendLine()
@@ -288,7 +310,8 @@ data class SearchResult(
     val title: String,
     val fakkuLink: String,
     val nyaaSearchLink: String,
-    val torrents: List<String>
+    val torrents: List<String> = emptyList(),
+    val failed: Boolean = false
 )
 
 enum class LinkType {
