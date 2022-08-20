@@ -75,7 +75,7 @@ suspend fun main(args: Array<String>) {
 
     val client = HttpClient(OkHttp) {
         engine {
-            addInterceptor(RateLimitInterceptor(4, 1, TimeUnit.SECONDS))
+            addInterceptor(RateLimitInterceptor(2, 1, TimeUnit.SECONDS))
         }
         install(ContentNegotiation) {
             json()
