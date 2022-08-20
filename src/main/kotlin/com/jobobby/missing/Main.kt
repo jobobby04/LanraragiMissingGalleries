@@ -94,7 +94,7 @@ suspend fun main(args: Array<String>) {
 
 
     logger.info("Select a type of hentai you are searching through.\nt for Tags\np for Publisher")
-    val validTypes = listOf("t", "p")
+    val validTypes = listOf("t", "p", "a", "c")
     val type = getInput(logger) {
         it !in validTypes
     }.toType()
@@ -105,6 +105,12 @@ suspend fun main(args: Array<String>) {
         }
         LinkType.Tag -> {
             logger.info("Find a tag at https://www.fakku.net/tags to check and paste the link:")
+        }
+        LinkType.Artist -> {
+            logger.info("Find a artist at https://www.fakku.net/hentai/artists to check and paste the link:")
+        }
+        LinkType.Collection -> {
+            logger.info("Find a artist at https://www.fakku.net/collections to check and paste the link:")
         }
         else -> {
             logger.info("Invalid type")
@@ -170,6 +176,17 @@ suspend fun main(args: Array<String>) {
                         LinkType.Tag -> archive.tags.split(",").any {
                             it.trim().equals(selectionTitle, true)
                         }
+                        LinkType.Artist -> {
+                            val index = archive.tags.indexOf("artist:", ignoreCase = true)
+                            if (index >= 0) {
+                                archive.tags.substring(index + 7)
+                                    .substringBefore(",")
+                                    .trim()
+                                    .equals(selectionTitle, true)
+                            } else true
+                        }
+                        // Can't check if its part of a collection
+                        LinkType.Collection -> true
                     }
                 }
             } else false
@@ -276,12 +293,16 @@ data class SearchResult(
 
 enum class LinkType {
     Tag,
-    Publisher
+    Publisher,
+    Artist,
+    Collection
 }
 
 fun String.toType() = when (this) {
     "t" -> LinkType.Tag
     "p" -> LinkType.Publisher
+    "a" -> LinkType.Artist
+    "c" -> LinkType.Collection
     else -> null
 }
 
