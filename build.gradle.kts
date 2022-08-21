@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.jobobby"
-version = "1.1"
+version = "1.2"
 
 repositories {
     mavenCentral()

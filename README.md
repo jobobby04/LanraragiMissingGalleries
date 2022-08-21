@@ -6,7 +6,7 @@ It uses Java so make sure you have that installed
 
 Example command:
 ```
-java -jar LanraragiMissingGalleries-1.1.jar <lanraragi_api_key> <lanraragi link, something like http://192.168.0.5>
+java -jar LanraragiMissingGalleries-1.2.jar <lanraragi_api_key> <lanraragi link, something like http://192.168.0.5>
 ```
 Additional modifiers can be added, such as:
 - `debug` for debug output
