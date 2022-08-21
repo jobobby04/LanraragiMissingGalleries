@@ -93,11 +93,20 @@ suspend fun main(args: Array<String>) {
         .body<List<LanraragiArchive>>()
 
 
-    logger.info("Select a type of hentai you are searching through.\nt for Tags\np for Publisher\na for Artist\nc for Collection")
-    val validTypes = listOf("t", "p", "a", "c")
-    val type = getInput(logger) {
-        it !in validTypes
-    }.toType()
+    logger.info(
+        "Select a type of hentai you are searching through.\n${LinkType.values().mapIndexed { index, linkType -> 
+            "${index + 1} for ${linkType.name}"
+        }.joinToString(separator = "\n")}"
+    )
+    val type = getInput(
+        logger,
+        mapper = {
+            it?.toIntOrNull()?.minus(1)?.let { LinkType.values().getOrNull(it) }
+        }
+    ) {
+        it == null
+    }
+
 
     when (type) {
         LinkType.Publisher -> {
@@ -109,16 +118,18 @@ suspend fun main(args: Array<String>) {
         LinkType.Artist -> {
             logger.info("Find a artist at https://www.fakku.net/hentai/artists to check and paste the link:")
         }
-        LinkType.Collection -> {
-            logger.info("Find a artist at https://www.fakku.net/collections to check and paste the link:")
+        LinkType.Series -> {
+            logger.info("Find a series at https://www.fakku.net/collections to check and paste the link:")
         }
-        else -> {
-            logger.info("Invalid type")
-            exitProcess(301)
+        LinkType.Circle -> {
+            logger.info("Find a circle at https://www.fakku.net/hentai/circles to check and paste the link:")
+        }
+        LinkType.Parody -> {
+            logger.info("Find a parody at https://www.fakku.net/hentai/series to check and paste the link:")
         }
     }
 
-    val fakkuLink = getInput(logger) { result ->
+    val fakkuLink = getInput(logger, { it }) { result ->
         result.isNullOrBlank() || !result.startsWith("https://www.fakku.net/")
     }
 
@@ -185,8 +196,26 @@ suspend fun main(args: Array<String>) {
                                     .equals(selectionTitle, true)
                             } else true
                         }
-                        // Can't check if its part of a collection
-                        LinkType.Collection -> true
+                        // Can't check if its part of a series
+                        LinkType.Series -> true
+                        LinkType.Circle -> {
+                            val index = archive.tags.indexOf("circle:", ignoreCase = true)
+                            if (index >= 0) {
+                                archive.tags.substring(index + 7)
+                                    .substringBefore(",")
+                                    .trim()
+                                    .equals(selectionTitle, true)
+                            } else true
+                        }
+                        LinkType.Parody -> {
+                            val index = archive.tags.indexOf("series:", ignoreCase = true)
+                            if (index >= 0) {
+                                archive.tags.substring(index + 7)
+                                    .substringBefore(",")
+                                    .trim()
+                                    .equals(selectionTitle, true)
+                            } else true
+                        }
                     }
                 }
             } else false
@@ -318,21 +347,19 @@ enum class LinkType {
     Tag,
     Publisher,
     Artist,
-    Collection
+    Series,
+    Circle,
+    Parody
 }
 
-fun String.toType() = when (this) {
-    "t" -> LinkType.Tag
-    "p" -> LinkType.Publisher
-    "a" -> LinkType.Artist
-    "c" -> LinkType.Collection
-    else -> null
-}
-
-fun getInput(logger: Logger, resultNotValid: (String?) -> Boolean): String {
-    var result: String?
+fun <T> getInput(
+    logger: Logger,
+    mapper: (String?) -> T,
+    resultNotValid: (T?) -> Boolean
+): T & Any {
+    var result: T?
     do {
-        result = readlnOrNull()?.trim()
+        result = readlnOrNull()?.trim()?.let(mapper)
         if (resultNotValid(result)) {
             logger.info("Retry")
         }
