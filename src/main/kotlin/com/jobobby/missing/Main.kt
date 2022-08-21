@@ -238,7 +238,13 @@ suspend fun main(args: Array<String>) {
                     torrents = client.get(searchLink)
                         .bodyAsText()
                         .let(Jsoup::parse)
-                        .select("table tr.default td[colspan=\"2\"] a:not(.comments)")
+                        .select("table tbody tr")
+                        .filter { element ->
+                            element.selectFirst("a")
+                                ?.attr("href")
+                                ?.let { it == "/?c=1_2" || it == "/?c=1_4" } == true
+                        }
+                        .mapNotNull { it.selectFirst("td[colspan=\"2\"] a:not(.comments)") }
                         .map { "https://sukebei.nyaa.si" + it.attr("href") }
                 )
             } catch (e: Exception) {
