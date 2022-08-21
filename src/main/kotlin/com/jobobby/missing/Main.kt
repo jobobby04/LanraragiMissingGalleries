@@ -256,8 +256,32 @@ suspend fun main(args: Array<String>) {
                                 ?.attr("href")
                                 ?.let { it == "/?c=1_2" || it == "/?c=1_4" } == true
                         }
-                        .mapNotNull { it.selectFirst("td[colspan=\"2\"] a:not(.comments)") }
-                        .map { "https://sukebei.nyaa.si" + it.attr("href") }
+                        .mapNotNull { element ->
+                            val items = element.select("td")
+
+                            NyaaTorrent(
+                                category = when (items.getOrNull(0)?.selectFirst("a")?.attr("href")) {
+                                    "/?c=1_2" -> "Doujinshi"
+                                    "/?c=1_4" -> "Manga"
+                                    else -> return@mapNotNull null
+                                },
+                                name = items.getOrNull(1)?.selectFirst("a")?.attr("title")
+                                    ?: return@mapNotNull null,
+                                link = items.getOrNull(1)?.selectFirst("a")?.attr("href")?.let {
+                                    "https://sukebei.nyaa.si$it"
+                                } ?: return@mapNotNull null,
+                                torrent = items.getOrNull(2)?.selectFirst("a")?.attr("href")?.let {
+                                    "https://sukebei.nyaa.si$it"
+                                } ?: return@mapNotNull null,
+                                magnet = items.getOrNull(2)?.select("a")?.lastOrNull()?.attr("href")
+                                    ?: return@mapNotNull null,
+                                size = items.getOrNull(3)?.text() ?: return@mapNotNull null,
+                                date = items.getOrNull(4)?.text() ?: return@mapNotNull null,
+                                seeders = items.getOrNull(5)?.text()?.toIntOrNull() ?: return@mapNotNull null,
+                                leechers = items.getOrNull(6)?.text()?.toIntOrNull() ?: return@mapNotNull null
+                            )
+                        }
+
                 )
             } catch (e: Exception) {
                 searchResult.copy(failed = true)
@@ -271,7 +295,7 @@ suspend fun main(args: Array<String>) {
                             separator = "\n",
                             prefix = "\n\n",
                             postfix = "\n"
-                        )
+                        ) { it.link }
                     }"
                 )
             } else if (failed) {
@@ -301,7 +325,7 @@ suspend fun main(args: Array<String>) {
                             appendLine(searchLink)
                             appendLine("Torrents:")
                             links.forEach {
-                                appendLine(it)
+                                appendLine(it.link)
                             }
                             appendLine()
                             appendLine()
@@ -359,8 +383,21 @@ data class SearchResult(
     val title: String,
     val fakkuLink: String,
     val nyaaSearchLink: String,
-    val torrents: List<String> = emptyList(),
+    val torrents: List<NyaaTorrent> = emptyList(),
     val failed: Boolean = false
+)
+
+@Serializable
+data class NyaaTorrent(
+    val category: String,
+    val name: String,
+    val link: String,
+    val torrent: String,
+    val magnet: String,
+    val size: String,
+    val date: String,
+    val seeders: Int,
+    val leechers: Int
 )
 
 enum class LinkType {
