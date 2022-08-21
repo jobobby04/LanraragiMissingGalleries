@@ -127,6 +127,9 @@ suspend fun main(args: Array<String>) {
         LinkType.Parody -> {
             logger.info("Find a parody at https://www.fakku.net/hentai/series to check and paste the link:")
         }
+        LinkType.Magazine -> {
+            logger.info("Find a magazine at https://www.fakku.net/hentai/magazines to check and paste the link:")
+        }
     }
 
     val fakkuLink = getInput(logger, { it }) { result ->
@@ -211,6 +214,15 @@ suspend fun main(args: Array<String>) {
                             val index = archive.tags.indexOf("series:", ignoreCase = true)
                             if (index >= 0) {
                                 archive.tags.substring(index + 7)
+                                    .substringBefore(",")
+                                    .trim()
+                                    .equals(selectionTitle, true)
+                            } else true
+                        }
+                        LinkType.Magazine -> {
+                            val index = archive.tags.indexOf("magazine:", ignoreCase = true)
+                            if (index >= 0) {
+                                archive.tags.substring(index + 9)
                                     .substringBefore(",")
                                     .trim()
                                     .equals(selectionTitle, true)
@@ -355,7 +367,8 @@ enum class LinkType {
     Artist,
     Series,
     Circle,
-    Parody
+    Parody,
+    Magazine
 }
 
 fun <T> getInput(
