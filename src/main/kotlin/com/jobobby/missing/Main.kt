@@ -265,7 +265,7 @@ suspend fun main(args: Array<String>) {
                                     "/?c=1_4" -> "Manga"
                                     else -> return@mapNotNull null
                                 },
-                                name = items.getOrNull(1)?.selectFirst("a")?.attr("title")
+                                name = items.getOrNull(1)?.select("a")?.lastOrNull()?.attr("title")
                                     ?: return@mapNotNull null,
                                 link = items.getOrNull(1)?.selectFirst("a")?.attr("href")?.let {
                                     "https://sukebei.nyaa.si$it"
