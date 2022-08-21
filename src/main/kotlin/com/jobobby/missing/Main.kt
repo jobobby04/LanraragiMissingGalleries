@@ -100,8 +100,8 @@ suspend fun main(args: Array<String>) {
     )
     val type = getInput(
         logger,
-        mapper = {
-            it?.toIntOrNull()?.minus(1)?.let { LinkType.values().getOrNull(it) }
+        mapper = { result ->
+            result?.toIntOrNull()?.minus(1)?.let { LinkType.values().getOrNull(it) }
         }
     ) {
         it == null
@@ -348,7 +348,9 @@ suspend fun main(args: Array<String>) {
     logger.info("Writing $selectionTitle.json")
     Path("$selectionTitle.json").apply {
         deleteIfExists()
-        prettyJson.encodeToStream(results, outputStream())
+        outputStream().use {
+            prettyJson.encodeToStream(results, it)
+        }
     }
 }
 
