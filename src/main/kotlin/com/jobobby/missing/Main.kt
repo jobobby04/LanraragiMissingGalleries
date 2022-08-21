@@ -93,7 +93,7 @@ suspend fun main(args: Array<String>) {
         .body<List<LanraragiArchive>>()
 
 
-    logger.info("Select a type of hentai you are searching through.\nt for Tags\np for Publisher")
+    logger.info("Select a type of hentai you are searching through.\nt for Tags\np for Publisher\na for Artist\nc for Collection")
     val validTypes = listOf("t", "p", "a", "c")
     val type = getInput(logger) {
         it !in validTypes
