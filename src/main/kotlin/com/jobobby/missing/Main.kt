@@ -103,9 +103,7 @@ suspend fun main(args: Array<String>) {
         mapper = { result ->
             result?.toIntOrNull()?.minus(1)?.let { LinkType.values().getOrNull(it) }
         }
-    ) {
-        it == null
-    }
+    ) { false }
 
 
     when (type) {
@@ -133,7 +131,7 @@ suspend fun main(args: Array<String>) {
     }
 
     val fakkuLink = getInput(logger, { it }) { result ->
-        result.isNullOrBlank() || !result.startsWith("https://www.fakku.net/")
+        result.isBlank() || !result.startsWith("https://www.fakku.net/")
     }
 
     val hentai: MutableList<Pair<String, String>> = mutableListOf()
@@ -270,11 +268,10 @@ suspend fun main(args: Array<String>) {
                                 link = items.getOrNull(1)?.selectFirst("a:not(.comments)")?.attr("href")?.let {
                                     "https://sukebei.nyaa.si$it"
                                 } ?: return@mapNotNull null,
-                                torrent = items.getOrNull(2)?.selectFirst("a")?.attr("href")?.let {
+                                torrent = items.getOrNull(2)?.selectFirst("i.fa-download")?.parent()?.attr("href")?.let {
                                     "https://sukebei.nyaa.si$it"
-                                } ?: return@mapNotNull null,
-                                magnet = items.getOrNull(2)?.select("a")?.lastOrNull()?.attr("href")
-                                    ?: return@mapNotNull null,
+                                },
+                                magnet = items.getOrNull(2)?.selectFirst("i.fa-magnet")?.parent()?.attr("href"),
                                 size = items.getOrNull(3)?.text() ?: return@mapNotNull null,
                                 date = items.getOrNull(4)?.text() ?: return@mapNotNull null,
                                 seeders = items.getOrNull(5)?.text()?.toIntOrNull() ?: return@mapNotNull null,
@@ -392,8 +389,8 @@ data class NyaaTorrent(
     val category: String,
     val name: String,
     val link: String,
-    val torrent: String,
-    val magnet: String,
+    val torrent: String? = null,
+    val magnet: String? = null,
     val size: String,
     val date: String,
     val seeders: Int,
@@ -413,12 +410,12 @@ enum class LinkType {
 fun <T> getInput(
     logger: Logger,
     mapper: (String?) -> T,
-    resultNotValid: (T?) -> Boolean
+    resultNotValid: (T & Any) -> Boolean
 ): T & Any {
     var result: T?
     do {
         result = readlnOrNull()?.trim()?.let(mapper)
-        if (resultNotValid(result)) {
+        if (result == null || resultNotValid(result)) {
             logger.info("Retry")
         }
     } while (result == null || resultNotValid(result))
