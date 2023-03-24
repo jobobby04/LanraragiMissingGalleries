@@ -9,6 +9,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.request.cookie
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.statement.bodyAsText
@@ -27,6 +28,7 @@ import org.jsoup.Jsoup
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.impl.SimpleLogger
+import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.Path
 import kotlin.io.path.deleteIfExists
@@ -76,6 +78,13 @@ suspend fun main(args: Array<String>) {
     val client = HttpClient(OkHttp) {
         engine {
             addInterceptor(RateLimitInterceptor(2, 1, TimeUnit.SECONDS))
+        }
+        val cookies = File("cookie.txt")
+        if (cookies.exists()) {
+            val loginCookie = cookies.readText()
+            install(DefaultRequest) {
+                cookie(name = "fakku_sid", value = loginCookie)
+            }
         }
         install(ContentNegotiation) {
             json()
