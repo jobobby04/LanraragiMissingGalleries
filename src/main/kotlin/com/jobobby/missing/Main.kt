@@ -6,12 +6,15 @@ import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.cookies.HttpCookies
+import io.ktor.client.plugins.cookies.addCookie
 import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.Cookie
 import io.ktor.http.encodeURLParameter
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.util.encodeBase64
@@ -26,7 +29,7 @@ import kotlinx.serialization.json.encodeToStream
 import org.jsoup.Jsoup
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.slf4j.impl.SimpleLogger
+import org.slf4j.simple.SimpleLogger
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.Path
 import kotlin.io.path.deleteIfExists
@@ -37,6 +40,12 @@ import kotlin.system.exitProcess
 private val prettyJson = Json {
     prettyPrint = true
 }
+val HiraganaRange1 = '\u3041'..'\u3096'
+val HiraganaRange2 = '\u3099'..'\u309f'
+val JapanesePunctuation = '\u3000'..'\u303f'
+val KatakanaRange = '\u30a0'..'\u30ff'
+val FullWidthRomanCharactersAndHalfWidthKatakana = '\uff00'..'\uffef'
+val CjkUnifiedIdeographsCommonAndUncommonKanji = '\u4e00'..'\u9faf'
 
 @OptIn(ExperimentalSerializationApi::class)
 suspend fun main(args: Array<String>) {
@@ -54,6 +63,12 @@ suspend fun main(args: Array<String>) {
         logger.error("Missing LANraragi link")
         exitProcess(202)
     }.trimEnd('/')
+
+    val filterJpTitles = args.any { it.equals("filterJpTitles", true) }
+
+    val sid = args.find { it.startsWith("fakku_sid=", true) }?.removePrefix("fakku_sid=")
+
+    val disableNyaaSearch = args.any { it.equals("disableNyaaSearch", true) }
 
     val lanraragiClient = HttpClient(OkHttp) {
         expectSuccess = true
@@ -75,7 +90,36 @@ suspend fun main(args: Array<String>) {
 
     val client = HttpClient(OkHttp) {
         engine {
-            addInterceptor(RateLimitInterceptor(2, 1, TimeUnit.SECONDS))
+            addInterceptor(RateLimitInterceptor(4, 1, TimeUnit.SECONDS))
+        }
+        install(ContentNegotiation) {
+            json()
+        }
+        if (debug) {
+            install(Logging) {
+                level = LogLevel.INFO
+            }
+        }
+        if (sid != null) {
+            install(HttpCookies) {
+                default {
+                    addCookie(
+                        "https://www.fakku.net/",
+                        Cookie(
+                            name = "fakku_sid",
+                            value = sid,
+                            httpOnly = true
+                        )
+                    )
+                }
+            }
+        }
+        install(HttpTimeout)
+    }
+
+    val nyaaClient = HttpClient(OkHttp) {
+        engine {
+            addInterceptor(RateLimitInterceptor(1, 1, TimeUnit.SECONDS))
         }
         install(ContentNegotiation) {
             json()
@@ -243,17 +287,15 @@ suspend fun main(args: Array<String>) {
                 url,
                 searchLink
             )
+            if (disableNyaaSearch) {
+                return@map searchResult
+            }
             try {
                 searchResult.copy(
-                    torrents = client.get(searchLink)
+                    torrents = nyaaClient.get(searchLink)
                         .bodyAsText()
                         .let(Jsoup::parse)
                         .select("table tbody tr")
-                        .filter { element ->
-                            element.selectFirst("a")
-                                ?.attr("href")
-                                ?.let { it == "/?c=1_2" || it == "/?c=1_4" } == true
-                        }
                         .mapNotNull { element ->
                             val items = element.select("td")
 
@@ -278,7 +320,22 @@ suspend fun main(args: Array<String>) {
                                 leechers = items.getOrNull(6)?.text()?.toIntOrNull() ?: return@mapNotNull null
                             )
                         }
-
+                        .let {
+                            if (filterJpTitles) {
+                                it.filterNot { (_, name) ->
+                                    name.any {
+                                        it in HiraganaRange1 ||
+                                            it in HiraganaRange2 ||
+                                            it in JapanesePunctuation ||
+                                            it in KatakanaRange ||
+                                            it in FullWidthRomanCharactersAndHalfWidthKatakana ||
+                                            it in CjkUnifiedIdeographsCommonAndUncommonKanji
+                                    }
+                                }
+                            } else {
+                                it
+                            }
+                        }
                 )
             } catch (e: Exception) {
                 searchResult.copy(failed = true)
@@ -373,6 +430,7 @@ suspend fun main(args: Array<String>) {
             prettyJson.encodeToStream(results, it)
         }
     }
+    exitProcess(0)
 }
 
 @Serializable

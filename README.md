@@ -6,7 +6,10 @@ It uses Java so make sure you have that installed
 
 Example command:
 ```
-java -jar LanraragiMissingGalleries-1.4.jar <lanraragi_api_key> <lanraragi link, something like http://192.168.0.5>
+java -jar LanraragiMissingGalleries-1.5.jar <lanraragi_api_key> <lanraragi link, something like http://192.168.0.5>
 ```
 Additional modifiers can be added, such as:
 - `debug` for debug output
+- `filterJpTitles` to remove results that have a japanese character in the title
+- `fakku_sid=<cookie>` for a Fakku sid cookie so that you can view filtered results
+- `disableNyaaSearch` to disable searching Nyaa.si for alternative downloads
