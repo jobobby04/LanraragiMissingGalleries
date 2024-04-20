@@ -138,14 +138,14 @@ suspend fun main(args: Array<String>) {
 
 
     logger.info(
-        "Select a type of hentai you are searching through.\n${LinkType.values().mapIndexed { index, linkType -> 
+        "Select a type of hentai you are searching through.\n${LinkType.entries.mapIndexed { index, linkType -> 
             "${index + 1} for ${linkType.name}"
         }.joinToString(separator = "\n")}"
     )
     val type = getInput(
         logger,
         mapper = { result ->
-            result?.toIntOrNull()?.minus(1)?.let { LinkType.values().getOrNull(it) }
+            result?.toIntOrNull()?.minus(1)?.let { LinkType.entries.getOrNull(it) }
         }
     ) { false }
 
