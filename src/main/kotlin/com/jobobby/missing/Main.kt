@@ -78,7 +78,11 @@ suspend fun main(args: Array<String>) {
             }
         }
         install(ContentNegotiation) {
-            json()
+            json(
+                Json {
+                    ignoreUnknownKeys = true
+                }
+            )
         }
         if (debug) {
             install(Logging) {
@@ -93,7 +97,11 @@ suspend fun main(args: Array<String>) {
             addInterceptor(RateLimitInterceptor(4, 1, TimeUnit.SECONDS))
         }
         install(ContentNegotiation) {
-            json()
+            json(
+                Json {
+                    ignoreUnknownKeys = true
+                }
+            )
         }
         if (debug) {
             install(Logging) {
@@ -122,7 +130,11 @@ suspend fun main(args: Array<String>) {
             addInterceptor(RateLimitInterceptor(1, 1, TimeUnit.SECONDS))
         }
         install(ContentNegotiation) {
-            json()
+            json(
+                Json {
+                    ignoreUnknownKeys = true
+                }
+            )
         }
         if (debug) {
             install(Logging) {
